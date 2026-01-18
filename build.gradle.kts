@@ -2,7 +2,7 @@ plugins {
     id("java")
 }
 
-allprojects{
+allprojects {
     group = "com.mzuha"
     version = "1.0-SNAPSHOT"
 
