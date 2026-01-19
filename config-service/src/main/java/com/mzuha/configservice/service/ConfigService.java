@@ -18,6 +18,7 @@ import org.springframework.stereotype.Service;
 @Service
 public class ConfigService {
 
+    private final Boolean notifyConfigUpdates;
     private final String configUpdatesTopic;
     private final ConfigRepository configRepository;
     private final ConfigMapper configMapper;
@@ -25,11 +26,13 @@ public class ConfigService {
     Logger LOGGER = LoggerFactory.getLogger(ConfigService.class);
 
     public ConfigService(
+            @Value("${app.kafka.notify-config-updates}") Boolean notifyConfigUpdates,
             @Value("${app.kafka.topics.config-updates}") String configUpdatesTopic,
             ConfigRepository configRepository,
             ConfigMapper configMapper,
             KafkaTemplate<String, ConfigResponse> kafkaTemplate
     ) {
+        this.notifyConfigUpdates = notifyConfigUpdates;
         this.configUpdatesTopic = configUpdatesTopic;
         this.configRepository = configRepository;
         this.configMapper = configMapper;
@@ -60,11 +63,13 @@ public class ConfigService {
         ConfigEntity configEntity = configRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Config not found for id: " + id));
 
+        configEntity.setKey(configRequest.key());
         configEntity.setValue(configRequest.value());
+        
         ConfigEntity updatedEntity = configRepository.save(configEntity);
         ConfigResponse configResponse = configMapper.mapEntityToResponse(updatedEntity);
 
-        notifyUpdate(configResponse);
+        if (notifyConfigUpdates) notifyUpdate(configResponse);
 
         return configResponse;
     }

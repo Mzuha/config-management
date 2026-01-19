@@ -32,5 +32,11 @@ dependencies {
 
     compileOnly("org.projectlombok:lombok")
     annotationProcessor("org.projectlombok:lombok")
+    testRuntimeOnly("com.h2database:h2")
 }
+
+tasks.test {
+    useJUnitPlatform()
+}
+
 

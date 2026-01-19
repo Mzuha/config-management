@@ -12,6 +12,7 @@ public class ConfigMapper {
                 configEntity.getId(),
                 configEntity.getApplication(),
                 configEntity.getProfile(),
+                configEntity.getKey(),
                 configEntity.getValue(),
                 configEntity.getCreatedAt(),
                 configEntity.getUpdatedAt()
