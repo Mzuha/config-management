@@ -1,4 +1,4 @@
-FROM amazoncorretto:21-alpine
+FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
 COPY build/libs/config-service-*.jar app.jar
 EXPOSE 8080

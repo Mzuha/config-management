@@ -12,16 +12,21 @@ public class ConfigMapper {
                 configEntity.getId(),
                 configEntity.getApplication(),
                 configEntity.getProfile(),
-                configEntity.getValue()
+                configEntity.getValue(),
+                configEntity.getCreatedAt(),
+                configEntity.getUpdatedAt()
         );
     }
 
     public ConfigEntity mapRequestToEntity(ConfigRequest configRequest) {
         return new ConfigEntity(
                 null,
-                configRequest.profile(),
                 configRequest.application(),
-                configRequest.value()
+                configRequest.profile(),
+                configRequest.key(),
+                configRequest.value(),
+                null,
+                null
         );
     }
 }

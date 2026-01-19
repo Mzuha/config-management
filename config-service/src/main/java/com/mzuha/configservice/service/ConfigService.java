@@ -7,24 +7,40 @@ import com.mzuha.configservice.model.ConfigResponse;
 import com.mzuha.configservice.repository.ConfigRepository;
 import com.mzuha.configservice.util.ConfigMapper;
 import jakarta.transaction.Transactional;
-import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 
 @Service
 public class ConfigService {
+
+    private final String configUpdatesTopic;
     private final ConfigRepository configRepository;
     private final ConfigMapper configMapper;
+    private final KafkaTemplate<String, ConfigResponse> kafkaTemplate;
+    Logger LOGGER = LoggerFactory.getLogger(ConfigService.class);
 
-    public ConfigService(ConfigRepository configRepository, ConfigMapper configMapper) {
+    public ConfigService(
+            @Value("${app.kafka.topics.config-updates}") String configUpdatesTopic,
+            ConfigRepository configRepository,
+            ConfigMapper configMapper,
+            KafkaTemplate<String, ConfigResponse> kafkaTemplate
+    ) {
+        this.configUpdatesTopic = configUpdatesTopic;
         this.configRepository = configRepository;
         this.configMapper = configMapper;
+        this.kafkaTemplate = kafkaTemplate;
     }
 
+    @Transactional
     public ConfigResponse save(ConfigRequest configRequest) {
         ConfigEntity requestConfigEntity = configMapper.mapRequestToEntity(configRequest);
         ConfigEntity savedEntity = configRepository.save(requestConfigEntity);
+
         return configMapper.mapEntityToResponse(savedEntity);
     }
 
@@ -41,11 +57,28 @@ public class ConfigService {
 
     @Transactional
     public ConfigResponse update(Long id, ConfigRequest configRequest) {
-        Optional<ConfigEntity> configEntityById = configRepository.findById(id);
-        return configEntityById.map(configEntity -> {
-            configEntity.setValue(configRequest.value());
-            return configMapper.mapEntityToResponse(configRepository.save(configEntity));
-        }).orElseThrow(() -> new ResourceNotFoundException("Config not found for given id"));
+        ConfigEntity configEntity = configRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Config not found for id: " + id));
+
+        configEntity.setValue(configRequest.value());
+        ConfigEntity updatedEntity = configRepository.save(configEntity);
+        ConfigResponse configResponse = configMapper.mapEntityToResponse(updatedEntity);
+
+        notifyUpdate(configResponse);
+
+        return configResponse;
+    }
+
+    private void notifyUpdate(ConfigResponse configResponse) {
+        kafkaTemplate.send(configUpdatesTopic, configResponse)
+                .whenComplete((result, ex) -> {
+                    if (ex == null) {
+                        LOGGER.info("Update config sent successfully");
+                    } else {
+                        LOGGER.error("Failed to send update config after retries", ex);
+                    }
+                });
+
     }
 
     public void deleteById(Long id) {
