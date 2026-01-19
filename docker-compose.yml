@@ -7,6 +7,11 @@ services:
       POSTGRES_PASSWORD: pass
     ports:
       - "5432:5432"
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U admin -d configdb" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
   
   redis-master:
     image: bitnami/redis:latest
@@ -75,16 +80,21 @@ services:
       KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
   
   config-service:
-    build: "./config-service"
+    build:
+      context: .
+      dockerfile: config-service/Dockerfile
     depends_on:
-      - postgres
-      - redis-sentinel
-      - kafka
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_started
     ports:
       - "8081:8081"
   
   config-client:
-    build: "./config-client"
+    build:
+      context: .
+      dockerfile: config-client/Dockerfile
     depends_on:
       - kafka
     ports:
