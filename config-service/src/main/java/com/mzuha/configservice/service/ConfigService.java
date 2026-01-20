@@ -2,6 +2,7 @@ package com.mzuha.configservice.service;
 
 import com.mzuha.configservice.exception.ResourceNotFoundException;
 import com.mzuha.configservice.model.ConfigEntity;
+import com.mzuha.configservice.model.ConfigEvent;
 import com.mzuha.configservice.model.ConfigRequest;
 import com.mzuha.configservice.model.ConfigResponse;
 import com.mzuha.configservice.repository.ConfigRepository;
@@ -21,14 +22,14 @@ public class ConfigService {
     private final String configUpdatesTopic;
     private final ConfigRepository configRepository;
     private final ConfigMapper configMapper;
-    private final KafkaTemplate<String, ConfigResponse> kafkaTemplate;
+    private final KafkaTemplate<String, ConfigEvent> kafkaTemplate;
     Logger LOGGER = LoggerFactory.getLogger(ConfigService.class);
 
     public ConfigService(
             @Value("${app.kafka.topics.config-updates}") String configUpdatesTopic,
             ConfigRepository configRepository,
             ConfigMapper configMapper,
-            KafkaTemplate<String, ConfigResponse> kafkaTemplate
+            KafkaTemplate<String, ConfigEvent> kafkaTemplate
     ) {
         this.configUpdatesTopic = configUpdatesTopic;
         this.configRepository = configRepository;
@@ -72,7 +73,14 @@ public class ConfigService {
     }
 
     private void notifyUpdate(ConfigResponse configResponse) {
-        kafkaTemplate.send(configUpdatesTopic, configResponse)
+        ConfigEvent configEvent = new ConfigEvent(
+                configResponse.application(),
+                configResponse.profile(),
+                configResponse.key(),
+                configResponse.value(),
+                configResponse.updatedAt()
+        );
+        kafkaTemplate.send(configUpdatesTopic, configEvent)
                 .whenComplete((result, ex) -> {
                     if (ex == null) {
                         LOGGER.info("Update config sent successfully");
