@@ -1,4 +1,4 @@
-package com.mzuha.configservice;
+package com.mzuha.configservice.controller;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
