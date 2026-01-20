@@ -92,7 +92,7 @@ class ConfigControllerIT {
         mockMvc.perform(delete("/config/" + id))
                 .andExpect(status().isOk());
 
-        // 6. VERIFY DELETED (404)
+        // 6. VERIFY DELETED
         mockMvc.perform(get("/config/" + id))
                 .andExpect(status().isNotFound());
     }
