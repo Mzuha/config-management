@@ -7,7 +7,6 @@ import com.mzuha.configservice.model.ConfigRequest;
 import com.mzuha.configservice.model.ConfigResponse;
 import com.mzuha.configservice.repository.ConfigRepository;
 import com.mzuha.configservice.util.ConfigMapper;
-import jakarta.transaction.Transactional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
@@ -15,6 +14,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class ConfigService {
@@ -45,11 +45,13 @@ public class ConfigService {
         return configMapper.mapEntityToResponse(savedEntity);
     }
 
+    @Transactional(readOnly = true)
     public Set<ConfigResponse> getConfigsByAppAndProfile(String application, String profile) {
         Set<ConfigEntity> configEntities = configRepository.findByApplicationAndProfile(application, profile);
         return configEntities.stream().map(configMapper::mapEntityToResponse).collect(Collectors.toSet());
     }
 
+    @Transactional(readOnly = true)
     public ConfigResponse getById(Long id) {
         return configRepository.findById(id)
                 .map(configMapper::mapEntityToResponse)
@@ -91,6 +93,7 @@ public class ConfigService {
 
     }
 
+    @Transactional
     public void deleteById(Long id) {
         configRepository.deleteById(id);
     }
